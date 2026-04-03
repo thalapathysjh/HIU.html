@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Health Information Unit</title>
+
+<!-- PWA Meta Tags -->
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="HIU Tracker">
+<link rel="apple-touch-icon" href="icon.png"> <!-- optional icon -->
+<link rel="icon" href="icon.png">
+
+<style>
+body {font-family: Arial, sans-serif; margin:0; background:#0f172a; color:white;}
+header {background:#1e293b; padding:15px; text-align:center; font-size:20px; font-weight:bold;}
+.container {padding:15px;}
+input, select, textarea, button {width:100%; margin-top:10px; padding:10px; border-radius:10px; border:none; font-size:14px;}
+button {background:#3b82f6; color:white; font-weight:bold;}
+.card {background:#1e293b; padding:10px; margin-top:10px; border-radius:10px;}
+.completed {border-left:5px solid #22c55e;}
+.pending {border-left:5px solid #f59e0b;}
+.delete-btn {background:red; margin-top:5px;}
+.small-btn {margin-top:5px; background:#22c55e;}
+.filter-btn {background:#f59e0b; margin-top:5px;}
+@media(max-width:600px){input,select,textarea,button{font-size:12px; padding:8px;}}
+</style>
+</head>
+<body>
+
+<header>Health Information Unit</header>
+<div class="container">
+
+<h3>Add Work</h3>
+<input type="text" id="taskInput" placeholder="Enter Work">
+<select id="statusInput">
+    <option value="pending">Pending</option>
+    <option value="completed">Completed</option>
+</select>
+<textarea id="notesInput" placeholder="Important Notes"></textarea>
+
+<select id="memberInput">
+    <option value="">Select Team Member</option>
+</select>
+<button onclick="addNewMember()">➕ Add New Member</button>
+
+<select id="wardInput">
+    <option value="">Select Ward / Unit</option>
+</select>
+<button onclick="addNewWard()">➕ Add New Ward/Unit</button>
+
+<button onclick="addTask()">Add Work</button>
+
+<h3>Filter Work</h3>
+<button class="filter-btn" onclick="displayTasks('all')">All</button>
+<button class="filter-btn" onclick="displayTasks('pending')">Pending</button>
+<button class="filter-btn" onclick="displayTasks('completed')">Completed</button>
+
+<h3>Work List</h3>
+<div id="taskList"></div>
+
+</div>
+
+<script>
+// Team Members
+let teamMembers = [
+"Dr.S.Sathees Sir","Sivatharshini Miss","Selshiya","Suranjith","Rushana",
+"Mathusalini","Kamshika"
+];
+
+// Wards / Units
+let wards = [
+"Ward 01","Ward 02","Ward 03","Ward 04","Ward 05","Ward 06","Ward 14 (Male)","Ward 15 (Female)","Ward 16A (Female)",
+"Ward 18","Ward 24 (Male)","Ward 31","Ward Cardiology","A & E Counter","A & E  T-Room","A & E  R-Room","SSU",
+"Ward 02 (Female)","Ward 11","Ward 17 (Female)","Ward 19 (Male)","Ward 16B (Female)","Ward 20","Ward 24 (Female)",
+"Ward 03 (Female)","Ward 12","Ward 23A (Female)","Ward 21","Ward 04 (Female)","Ward 39","Ward 23B (Female)",
+"Ward 22","Ward 07 (Male)","Ward 27 (Male)","Ward 08 (Male)","Ward 28 (Male)","Ward 09 (Male)","Ward 29 (Male)",
+"Ward 10 (Male)","Ward 30 (Male)","Ward 34 (Male)","MICU","ATICU","SICU","NICU (PBU)","CCU","HDU","NSU",
+"GU","Obstetrics (ANC) & Gynaecology (GYN)","Eye Clinic","Paediatric Clinic","Surgical Clinic","Skin Clinic",
+"Diabetic Centre","Mental Health Clinic","Dental Clinic","OMF Surgical clinic","Orthodontic Clinic",
+"Restorative Dentistry","Oncology Clinic (Early Detection Center)","ENT Clinic","Orthopaedic Clinic",
+"Cardiology Clinic","Cardiothoracic Clinic","Paediatric Cardiology Clinic","Genito Urinary Surgical Unit",
+"Respiratory Unit","Hematology Clinic","Medical Clinic","Hypertension Clinic","Breast Clinic","GEATRIATIV CLINIC",
+"Immunisation And Family Planning","VP OPD","VP PAEDIATRIC","Nephrology Clinic","Child Development Clinic",
+"Neurology clinic","Rheumatology Unit","GU Surgery","Paediatric Surgery Clinic","Paediatric Neurology",
+"Palliative Care Unit","Vascular Surgery","Nutrition Clinic"
+];
+
+// Populate dropdowns
+let memberSelect = document.getElementById("memberInput");
+function populateMembers() {
+    memberSelect.innerHTML = '<option value="">Select Team Member</option>';
+    teamMembers.forEach(m => {
+        let opt = document.createElement("option"); opt.value = m; opt.text = m; memberSelect.add(opt);
+    });
+}
+populateMembers();
+
+let wardSelect = document.getElementById("wardInput");
+function populateWards() {
+    wardSelect.innerHTML = '<option value="">Select Ward / Unit</option>';
+    wards.forEach(w => {
+        let opt = document.createElement("option"); opt.value = w; opt.text = w; wardSelect.add(opt);
+    });
+}
+populateWards();
+
+// Add new member / ward
+function addNewMember() {
+    let name = prompt("Enter new team member name:");
+    if(name && !teamMembers.includes(name.trim())){
+        teamMembers.push(name.trim());
+        populateMembers();
+        alert("New member added ✅");
+    }
+}
+function addNewWard() {
+    let name = prompt("Enter new ward/unit name:");
+    if(name && !wards.includes(name.trim())){
+        wards.push(name.trim());
+        populateWards();
+        alert("New ward/unit added ✅");
+    }
+}
+
+// Tasks
+let tasks = JSON.parse(localStorage.getItem("tasks")) || [];
+
+function saveTasks(){ localStorage.setItem("tasks", JSON.stringify(tasks)); }
+
+function addTask() {
+    let task = document.getElementById("taskInput").value.trim();
+    let status = document.getElementById("statusInput").value;
+    let notes = document.getElementById("notesInput").value.trim();
+    let member = document.getElementById("memberInput").value;
+    let ward = document.getElementById("wardInput").value;
+
+    if(!task){ alert("Enter work!"); return; }
+    if(!member){ alert("Select team member!"); return; }
+    if(!ward){ alert("Select ward/unit!"); return; }
+
+    let date = new Date().toLocaleDateString();
+
+    tasks.push({task,status,notes,member,ward,date});
+    saveTasks(); displayTasks();
+
+    document.getElementById("taskInput").value = "";
+    document.getElementById("notesInput").value = "";
+    document.getElementById("memberInput").value = "";
+    document.getElementById("wardInput").value = "";
+}
+
+function displayTasks(filter="all"){
+    let list = document.getElementById("taskList");
+    list.innerHTML = "";
+
+    tasks.forEach((t,index)=>{
+        if(filter !== "all" && t.status !== filter) return;
+
+        let div = document.createElement("div");
+        div.className = "card "+(t.status==="completed"?"completed":"pending");
+
+        div.innerHTML = `<b>${t.task}</b> [${t.date}]<br>
+        Status: ${t.status}<br>
+        Member: ${t.member}<br>
+        Ward: ${t.ward}<br>
+        Notes: ${t.notes}<br>
+        <button class="small-btn" onclick="markComplete(${index})">Mark Complete</button>
+        <button class="delete-btn" onclick="deleteTask(${index})">Delete</button>`;
+
+        list.appendChild(div);
+    });
+}
+
+function deleteTask(index){ tasks.splice(index,1); saveTasks(); displayTasks(); }
+function markComplete(index){ tasks[index].status="completed"; saveTasks(); displayTasks(); }
+
+// Initial load
+displayTasks();
+</script>
+
+</body>
+</html>
